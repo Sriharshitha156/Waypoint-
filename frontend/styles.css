@@ -1,0 +1,577 @@
+/* ==========================================================================
+   Pathfinder — visual language
+   A learning "trail": deep survey-map indigo, brass/ochre waypoint markers,
+   contour-line texture. Fraunces for display type (the trail names carry
+   personality), Inter for body/UI, JetBrains Mono for stats & data.
+   ========================================================================== */
+
+:root {
+  --ink: #0E1626;
+  --panel: #141F38;
+  --panel-raised: #1B2A4A;
+  --line: #2A3B5E;
+  --text: #EAEEFA;
+  --text-muted: #94A3C4;
+  --text-faint: #5F6E92;
+
+  --brass: #D9A441;
+  --brass-soft: rgba(217, 164, 65, 0.15);
+  --teal: #4FD1B0;
+  --teal-soft: rgba(79, 209, 176, 0.15);
+  --coral: #E0674B;
+  --coral-soft: rgba(224, 103, 75, 0.15);
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+}
+
+/* Faint topographic contour-line texture across the whole app */
+body {
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(217, 164, 65, 0.05) 0, transparent 40%),
+    radial-gradient(circle at 85% 75%, rgba(79, 209, 176, 0.06) 0, transparent 45%),
+    repeating-radial-gradient(circle at 50% 0%, transparent 0, transparent 60px, rgba(255,255,255,0.012) 61px);
+}
+
+#root { min-height: 100vh; }
+
+::selection { background: var(--brass-soft); color: var(--text); }
+
+a { color: var(--teal); }
+
+/* ---------- Shell / layout ---------- */
+
+.app-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 22px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.brand-mark {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.brand-mark em {
+  font-style: normal;
+  color: var(--brass);
+}
+
+.brand-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+
+.learner-badge {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+}
+
+/* ---------- Tabs ---------- */
+
+.tab-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tab-btn {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  padding: 10px 18px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s ease;
+}
+
+.tab-btn:hover { color: var(--text); }
+
+.tab-btn.active {
+  color: var(--text);
+}
+
+.tab-btn.active::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brass);
+  border-radius: 2px;
+}
+
+.tab-btn .count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-left: 6px;
+}
+
+/* ---------- Cards / panels ---------- */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.panel-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+/* ---------- Chat tab ---------- */
+
+.chat-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 22px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .chat-layout { grid-template-columns: 1fr; }
+}
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 560px;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+  margin-bottom: 14px;
+}
+
+.msg {
+  max-width: 86%;
+  padding: 12px 15px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.msg strong { color: var(--brass); font-weight: 600; }
+
+.msg.user {
+  align-self: flex-end;
+  background: var(--teal-soft);
+  border: 1px solid rgba(79, 209, 176, 0.3);
+  border-bottom-right-radius: 4px;
+}
+
+.msg.assistant {
+  align-self: flex-start;
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 4px;
+}
+
+.msg.assistant.thinking {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input-row textarea {
+  flex: 1;
+  resize: none;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 11px 13px;
+  height: 46px;
+  line-height: 1.4;
+}
+
+.chat-input-row textarea:focus {
+  outline: none;
+  border-color: var(--brass);
+}
+
+.btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 11px 18px;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--brass);
+  color: #1A1305;
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-muted);
+}
+.btn-ghost:hover:not(:disabled) { border-color: var(--brass); color: var(--text); }
+
+.suggestion-chip {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.suggestion-chip:hover { border-color: var(--teal); color: var(--text); }
+
+.suggestion-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+/* Mini profile summary card next to chat */
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: 13px;
+}
+.profile-row:last-child { border-bottom: none; }
+.profile-row .label { color: var(--text-muted); }
+.profile-row .value { color: var(--text); font-family: var(--font-mono); font-size: 12px; text-align: right; }
+
+.skill-pill {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--teal);
+  background: var(--teal-soft);
+  border-radius: 999px;
+  padding: 3px 9px;
+  margin: 3px 4px 0 0;
+}
+
+/* ---------- Roadmap / trail tab ---------- */
+
+.trail {
+  position: relative;
+  padding-left: 34px;
+}
+
+.trail::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: repeating-linear-gradient(to bottom, var(--line) 0 6px, transparent 6px 12px);
+}
+
+.trail-step {
+  position: relative;
+  padding-bottom: 26px;
+}
+.trail-step:last-child { padding-bottom: 0; }
+
+.trail-node {
+  position: absolute;
+  left: -34px;
+  top: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  color: var(--text-faint);
+  z-index: 1;
+}
+
+.trail-node.done {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #06231C;
+}
+
+.trail-node.milestone {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: #1A1305;
+}
+
+.trail-card {
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 15px 17px;
+}
+
+.trail-card.done { opacity: 0.6; }
+
+.trail-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.trail-card-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badge.course { background: rgba(79,209,176,0.12); color: var(--teal); }
+.badge.project { background: rgba(217,164,65,0.15); color: var(--brass); }
+.badge.assessment { background: rgba(224,103,75,0.15); color: var(--coral); }
+
+.trail-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+
+.trail-explain {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0 0 12px;
+}
+
+.trail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn-mini {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.btn-mini:hover { color: var(--text); border-color: var(--teal); }
+.btn-mini.positive:hover { border-color: var(--teal); color: var(--teal); }
+.btn-mini.negative:hover { border-color: var(--coral); color: var(--coral); }
+
+/* ---------- Dashboard tab ---------- */
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.stat-value .unit {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.progress-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--panel-raised);
+  overflow: hidden;
+  margin-top: 10px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), var(--brass));
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.dash-cols {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 900px) {
+  .dash-cols { grid-template-columns: 1fr; }
+}
+
+.milestone-item, .next-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.milestone-item:last-child, .next-item:last-child { border-bottom: none; }
+
+.domain-row {
+  margin-bottom: 14px;
+}
+.domain-row-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+}
+.domain-row-label .frac { font-family: var(--font-mono); color: var(--text-faint); }
+
+.chart-wrap { position: relative; height: 220px; }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+.empty-state .glyph {
+  font-family: var(--font-display);
+  font-size: 42px;
+  color: var(--brass);
+  margin-bottom: 10px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--text-faint);
+  border-top-color: var(--brass);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.footer-note {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 40px;
+}
