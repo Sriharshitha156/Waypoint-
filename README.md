@@ -5,6 +5,11 @@ structured, prerequisite-ordered learning roadmap — with explanations for
 every recommendation, adaptive re-planning based on feedback/progress, and a
 progress dashboard.
 
+## Live demo
+
+- Backend (API): https://waypoint-backend-fl54.onrender.com
+- Frontend (UI): https://waypoint-frontend-w6ni.onrender.com
+
 ## What's included
 
 | Deliverable (from the brief)              | Where it lives |
