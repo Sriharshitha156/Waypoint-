@@ -26,6 +26,7 @@ class LearnerProfile:
         self.completed_course_ids: set[str] = set()
         self.in_progress_course_ids: set[str] = set()
         self.feedback_log: list[dict] = []
+        self.feedback_flags: dict[str, str] = {}  # course_id -> latest feedback type, for visible badges
         self.created_at = datetime.utcnow().isoformat()
 
     def to_dict(self):
@@ -40,6 +41,8 @@ class LearnerProfile:
             "completed_course_ids": sorted(self.completed_course_ids),
             "in_progress_course_ids": sorted(self.in_progress_course_ids),
             "feedback_log": self.feedback_log,
+            "feedback_flags": self.feedback_flags,
+            "created_at": self.created_at,
         }
 
 
@@ -93,7 +96,32 @@ class ProfileStore:
             "comment": comment,
             "timestamp": datetime.utcnow().isoformat(),
         })
+        profile.feedback_flags[course_id] = feedback
         return profile
+
+    def downgrade_experience(self, learner_id: str):
+        """Step experience level down one notch (advanced->intermediate->beginner).
+        Used when a learner flags a course as too hard, so the recommender
+        actually responds to that signal instead of silently logging it."""
+        order = ["beginner", "intermediate", "advanced"]
+        profile = self.get_or_create(learner_id)
+        idx = order.index(profile.experience_level) if profile.experience_level in order else 0
+        if idx > 0:
+            profile.experience_level = order[idx - 1]
+        return profile
+
+    def list_all(self):
+        """Return a lightweight summary of every learner profile currently held in
+        memory — used to power the roadmap switcher (no auth; browser-local list)."""
+        return [
+            {
+                "learner_id": p.learner_id,
+                "name": p.name,
+                "goal_text": p.goal_text,
+                "created_at": p.created_at,
+            }
+            for p in self._profiles.values()
+        ]
 
 
 # Singleton store used by the API layer

@@ -121,7 +121,8 @@ def _build_path_for_learner(profile) -> dict:
         top_k=8,
     )
     target_courses = top_matches if top_matches else scored[:5]
-    path = generate_path(rec_engine.course_by_id, target_courses, profile.completed_course_ids)
+    path = generate_path(rec_engine.course_by_id, target_courses, profile.completed_course_ids,
+                          profile.feedback_flags)
 
     for step in path["steps"]:
         course = rec_engine.course_by_id[step["course_id"]]
@@ -226,6 +227,12 @@ def submit_feedback(learner_id: str, fb: FeedbackInput):
         profile.known_skills |= set(s.lower() for s in course["skills_taught"])
     if course and fb.feedback in ("too_easy", "not_relevant"):
         profile.completed_course_ids.add(fb.course_id)
+    if course and fb.feedback == "too_hard":
+        # Visible, real effect: step the learner's overall level down a notch so the
+        # recommender favors gentler material going forward (see recommend()'s level
+        # penalty). The flagged course itself stays in the path with a "too_hard" badge
+        # in the UI rather than being silently removed.
+        profile_store.downgrade_experience(learner_id)
 
     path = _build_path_for_learner(profile)
     return {"profile": profile.to_dict(), "path": path}
@@ -246,6 +253,23 @@ def ask_assistant(learner_id: str, ask: AskInput):
 @app.get("/api/courses")
 def list_courses():
     return rec_engine.courses
+
+
+@app.get("/api/learners")
+def list_learners():
+    """Lightweight list of every roadmap/profile currently held in memory —
+    powers the frontend's roadmap switcher. No auth: any learner_id can be
+    requested, this just lets the UI show what's available to pick from."""
+    return profile_store.list_all()
+
+
+@app.delete("/api/learner/{learner_id}")
+def delete_learner(learner_id: str):
+    """Remove a learner's profile and cached path (used by 'delete roadmap')."""
+    existed = profile_store.get(learner_id) is not None
+    profile_store._profiles.pop(learner_id, None)
+    _path_cache.pop(learner_id, None)
+    return {"deleted": existed}
 
 
 @app.get("/api/dashboard/{learner_id}")

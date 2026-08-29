@@ -110,6 +110,106 @@ a { color: var(--teal); }
   background: var(--panel);
 }
 
+/* ---------- Roadmap switcher ---------- */
+
+.switcher {
+  position: relative;
+  display: flex;
+  gap: 8px;
+}
+
+.switcher-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  max-height: 340px;
+  overflow-y: auto;
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+  z-index: 20;
+  padding: 6px;
+}
+
+.switcher-empty {
+  padding: 14px 12px;
+  font-size: 12.5px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
+.switcher-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.switcher-item:hover { background: rgba(255,255,255,0.04); }
+
+.switcher-item.active {
+  background: var(--teal-soft);
+  color: var(--text);
+}
+
+.switcher-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher-item-delete {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.switcher-item-delete:hover { color: var(--coral); background: var(--coral-soft); }
+
+/* ---------- Toast (inline confirmation for roadmap actions) ---------- */
+
+.toast {
+  background: var(--teal-soft);
+  border: 1px solid rgba(79, 209, 176, 0.35);
+  color: var(--text);
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+/* ---------- Feedback acknowledgement badge on a trail card ---------- */
+
+.feedback-ack {
+  font-size: 12px;
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.feedback-ack.too_hard {
+  background: var(--coral-soft);
+  color: var(--coral);
+}
+.feedback-ack.too_easy {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+.feedback-ack.not_relevant {
+  background: rgba(148, 163, 196, 0.12);
+  color: var(--text-muted);
+}
+
 /* ---------- Tabs ---------- */
 
 .tab-row {
