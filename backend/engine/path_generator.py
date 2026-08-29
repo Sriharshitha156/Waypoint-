@@ -36,13 +36,18 @@ def build_prerequisite_graph(course_by_id: dict, target_ids: list[str]):
     return graph
 
 
-def generate_path(course_by_id: dict, target_courses: list[dict], completed_course_ids: set[str]):
+def generate_path(course_by_id: dict, target_courses: list[dict], completed_course_ids: set[str],
+                   feedback_flags: dict[str, str] | None = None):
     """Builds the full prerequisite-ordered roadmap for the target courses.
 
     Completed courses are kept IN the roadmap (marked completed=True) rather than
     removed, so the path stays stable and progress can be tracked against a fixed
     total instead of shrinking every time a course is finished.
+
+    feedback_flags (course_id -> "too_easy"/"too_hard"/...) are attached to each
+    step so the UI can show a visible acknowledgement instead of silently logging it.
     """
+    feedback_flags = feedback_flags or {}
     target_ids = [c["id"] for c in target_courses]
     graph = build_prerequisite_graph(course_by_id, target_ids)
 
@@ -74,6 +79,7 @@ def generate_path(course_by_id: dict, target_courses: list[dict], completed_cour
             "is_explicit_target": cid in target_ids,
             "is_milestone": course["type"] in ("project", "assessment"),
             "completed": cid in completed_course_ids,
+            "feedback_flag": feedback_flags.get(cid),
             "cumulative_hours": cumulative_hours,
         })
 

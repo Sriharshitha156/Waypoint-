@@ -15,6 +15,7 @@ progress dashboard.
 | Personalized path generator w/ prerequisites & milestones | `backend/engine/path_generator.py` (topological sort over a course DAG) |
 | Explainability / Q&A assistant             | `backend/engine/explainer.py` |
 | Progress dashboard                         | Dashboard tab (`frontend/`) → `GET /api/dashboard/{id}` |
+| Multiple roadmaps / switching              | "My roadmaps" menu (`frontend/`) → `GET /api/learners`, `DELETE /api/learner/{id}` |
 
 ## Architecture
 
@@ -118,8 +119,17 @@ Full endpoint list and docstrings are in `backend/main.py`, or visit
   prerequisite state — not free-generated text — so it can't hallucinate a
   reason unconnected to the underlying recommendation.
 - **Adaptation loop**: completing a course, or flagging one as "too easy"
-  (skills folded into `known_skills`) or "too hard", triggers an immediate
-  path regeneration, so the roadmap always reflects the latest profile.
+  (skills folded into `known_skills`) or "too hard" (drops the learner's
+  overall experience level a notch, so future recommendations favor
+  gentler material), triggers an immediate path regeneration. Every
+  flagged course shows a visible acknowledgement badge on its card in the
+  Roadmap tab — feedback is never silent.
+- **Multiple roadmaps, no login required**: each roadmap is its own
+  `learner_id` on the backend. The frontend's "My roadmaps" switcher
+  (top-right) keeps a local list of your roadmaps in browser storage and
+  lets you create a new one or jump between existing ones — a lightweight
+  stand-in for accounts, appropriate for a prototype with an in-memory
+  backend.
 - **Stateless-friendly regeneration**: the path is fully recomputed (not
   incrementally patched) on every profile change, which keeps the system
   simple and avoids state drift, at the cost of some recompute — fine at
@@ -128,7 +138,8 @@ Full endpoint list and docstrings are in `backend/main.py`, or visit
 ## Known limitations of this prototype
 
 - Learner profiles are stored in-memory (reset when the backend restarts).
-  A production build would back this with Postgres/SQLite.
+  A production build would back this with Postgres/SQLite, and the "My
+  roadmaps" switcher would become a real login/account system.
 - The course catalog (`backend/data/courses.json`) is a curated seed set of
   24 items; a production system would ingest a real course catalog (e.g.
   from a partner LMS) and refresh the TF-IDF index accordingly.
@@ -136,6 +147,11 @@ Full endpoint list and docstrings are in `backend/main.py`, or visit
   pipeline; it works well for the demo goals but is less robust to very
   unusual phrasing. See `docs/SOLUTION_DOCUMENTATION.md` for how this would
   be upgraded.
+- In the **Chat** tab, saying things like "this feels too hard" is
+  recognized conversationally but only returns guidance — it does not yet
+  call the feedback API directly. Use the buttons on each course card in
+  the **Roadmap** tab ("Mark complete" / "Too easy" / "Feels too hard") to
+  actually trigger adaptation; those are fully wired end-to-end.
 
 ## License
 

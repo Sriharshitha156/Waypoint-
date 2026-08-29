@@ -2,6 +2,7 @@ const { useState, useEffect, useRef, useCallback } = React;
 const API = window.API_BASE;
 
 const LEARNER_ID_KEY = "pathfinder_learner_id";
+const SAVED_ROADMAPS_KEY = "pathfinder_saved_roadmaps"; // array of {learner_id, label} for the switcher
 
 function getOrCreateLearnerId() {
   let id = localStorageSafe.get(LEARNER_ID_KEY);
@@ -10,6 +11,38 @@ function getOrCreateLearnerId() {
     localStorageSafe.set(LEARNER_ID_KEY, id);
   }
   return id;
+}
+
+function newLearnerId() {
+  return "learner_" + Math.random().toString(36).slice(2, 10);
+}
+
+function getSavedRoadmaps() {
+  try {
+    const raw = localStorageSafe.get(SAVED_ROADMAPS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveSavedRoadmaps(list) {
+  localStorageSafe.set(SAVED_ROADMAPS_KEY, JSON.stringify(list));
+}
+
+function upsertSavedRoadmap(learnerId, label) {
+  const list = getSavedRoadmaps();
+  const idx = list.findIndex((r) => r.learner_id === learnerId);
+  const entry = { learner_id: learnerId, label: label || "Untitled goal", updated_at: Date.now() };
+  if (idx >= 0) list[idx] = entry; else list.push(entry);
+  saveSavedRoadmaps(list);
+  return list;
+}
+
+function removeSavedRoadmap(learnerId) {
+  const list = getSavedRoadmaps().filter((r) => r.learner_id !== learnerId);
+  saveSavedRoadmaps(list);
+  return list;
 }
 
 // NOTE: artifact-style environments disallow localStorage, but this is a
@@ -78,6 +111,7 @@ function ChatTab({ learnerId, profile, path, onNewPath, learnerName, setLearnerN
         });
         setMessages((m) => [...m, { role: "assistant", text: data.reply }]);
         onNewPath(data.profile, data.path);
+        upsertSavedRoadmap(learnerId, truncate(trimmed, 48));
       } else {
         data = await api(`/api/ask/${learnerId}`, {
           method: "POST",
@@ -178,6 +212,13 @@ function mdBold(text) {
 
 function RoadmapTab({ learnerId, path, refreshAll }) {
   const [busyId, setBusyId] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   if (!path) {
     return (
@@ -198,18 +239,23 @@ function RoadmapTab({ learnerId, path, refreshAll }) {
           method: "POST",
           body: JSON.stringify({ course_id: courseId, status: "completed" }),
         });
+        setToast("Marked complete — roadmap updated.");
       } else if (action === "too_easy") {
         await api(`/api/feedback/${learnerId}`, {
           method: "POST",
           body: JSON.stringify({ course_id: courseId, feedback: "too_easy" }),
         });
+        setToast("Got it — marked as known and skipped.");
       } else if (action === "too_hard") {
         await api(`/api/feedback/${learnerId}`, {
           method: "POST",
           body: JSON.stringify({ course_id: courseId, feedback: "too_hard" }),
         });
+        setToast("Thanks — your level was adjusted so upcoming recommendations go gentler.");
       }
       await refreshAll();
+    } catch (err) {
+      setToast(`Couldn't save that: ${err.message}`);
     } finally {
       setBusyId(null);
     }
@@ -217,6 +263,7 @@ function RoadmapTab({ learnerId, path, refreshAll }) {
 
   return (
     <div className="panel">
+      {toast && <div className="toast">{toast}</div>}
       <div className="panel-title">Your personalized roadmap</div>
       <div className="panel-subtitle">{path.overview}</div>
 
@@ -235,6 +282,13 @@ function RoadmapTab({ learnerId, path, refreshAll }) {
                 {s.domain} · {s.level} · {s.duration_hours}h
                 {s.prerequisites.length > 0 && <> · requires {s.prerequisites.length} prereq{s.prerequisites.length > 1 ? "s" : ""}</>}
               </div>
+              {s.feedback_flag && (
+                <div className={`feedback-ack ${s.feedback_flag}`}>
+                  {s.feedback_flag === "too_hard" && "⚠ You flagged this as too hard — your overall level was adjusted so future recommendations go gentler."}
+                  {s.feedback_flag === "too_easy" && "✓ You flagged this as too easy — marked done and its skills were added to your known skills."}
+                  {s.feedback_flag === "not_relevant" && "✕ You flagged this as not relevant — it's been skipped."}
+                </div>
+              )}
               <p className="trail-explain">{s.explanation}</p>
               {!s.completed && (
                 <div className="trail-actions">
@@ -392,21 +446,65 @@ function DashboardTab({ learnerId, path, hasProfile }) {
   );
 }
 
+function RoadmapSwitcher({ activeId, onSwitch, onNew, onDeleted }) {
+  const [open, setOpen] = useState(false);
+  const [roadmaps, setRoadmaps] = useState(getSavedRoadmaps());
+
+  useEffect(() => {
+    if (open) setRoadmaps(getSavedRoadmaps());
+  }, [open]);
+
+  const del = async (e, learnerId) => {
+    e.stopPropagation();
+    try { await api(`/api/learner/${learnerId}`, { method: "DELETE" }); } catch (err) { /* ignore */ }
+    const updated = removeSavedRoadmap(learnerId);
+    setRoadmaps(updated);
+    if (learnerId === activeId) onDeleted();
+  };
+
+  return (
+    <div className="switcher">
+      <button className="btn btn-ghost" onClick={() => setOpen((o) => !o)}>
+        My roadmaps {roadmaps.length > 0 && <span className="count">{roadmaps.length}</span>} ▾
+      </button>
+      <button className="btn btn-primary" onClick={onNew}>+ New roadmap</button>
+      {open && (
+        <div className="switcher-menu">
+          {roadmaps.length === 0 && <div className="switcher-empty">No saved roadmaps yet — describe a goal in Chat to create one.</div>}
+          {roadmaps.map((r) => (
+            <div
+              key={r.learner_id}
+              className={`switcher-item ${r.learner_id === activeId ? "active" : ""}`}
+              onClick={() => { onSwitch(r.learner_id); setOpen(false); }}
+            >
+              <span className="switcher-item-label">{r.label}</span>
+              <button className="switcher-item-delete" onClick={(e) => del(e, r.learner_id)} title="Delete this roadmap">✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
-  const learnerId = useRef(getOrCreateLearnerId()).current;
+  const [learnerId, setLearnerIdState] = useState(getOrCreateLearnerId());
   const [tab, setTab] = useState("chat");
   const [profile, setProfile] = useState(null);
   const [path, setPath] = useState(null);
   const [learnerName, setLearnerName] = useState("");
 
-  const refreshAll = useCallback(async () => {
+  const refreshAll = useCallback(async (idOverride) => {
+    const id = idOverride || learnerId;
     try {
-      const p = await api(`/api/profile/${learnerId}`);
+      const p = await api(`/api/profile/${id}`);
       setProfile(p);
-      const pathData = await api(`/api/path/${learnerId}`);
+      const pathData = await api(`/api/path/${id}`);
       setPath(pathData);
     } catch (e) {
-      // no profile yet — that's fine on first load
+      // no profile yet for this learner — that's fine on first load / brand new roadmap
+      setProfile(null);
+      setPath(null);
     }
   }, [learnerId]);
 
@@ -417,6 +515,23 @@ function App() {
     setPath(newPath);
   };
 
+  const switchTo = (id) => {
+    localStorageSafe.set(LEARNER_ID_KEY, id);
+    setLearnerIdState(id);
+    setTab("chat");
+    refreshAll(id);
+  };
+
+  const startNewRoadmap = () => {
+    const id = newLearnerId();
+    localStorageSafe.set(LEARNER_ID_KEY, id);
+    setLearnerIdState(id);
+    setProfile(null);
+    setPath(null);
+    setLearnerName("");
+    setTab("chat");
+  };
+
   return (
     <div className="app-shell">
       <div className="app-header">
@@ -424,7 +539,12 @@ function App() {
           <div className="brand-mark">Path<em>finder</em></div>
           <div className="brand-tag">AI Personalized Learning Path Recommender</div>
         </div>
-        <div className="learner-badge">id · {learnerId}</div>
+        <RoadmapSwitcher
+          activeId={learnerId}
+          onSwitch={switchTo}
+          onNew={startNewRoadmap}
+          onDeleted={startNewRoadmap}
+        />
       </div>
 
       <div className="tab-row">
